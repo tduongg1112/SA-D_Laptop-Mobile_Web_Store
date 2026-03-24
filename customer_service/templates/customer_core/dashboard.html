@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Dashboard</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; margin: 0; background: #fafcff; color: #1a2a3a; }
+    .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    .box { background: #fff; border: 1px solid #e2ecf9; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h1, h2 { margin-top: 0; color: #0f3d7a; }
+    input, select { padding: 8px; border: 1px solid #c7d8ef; border-radius: 8px; }
+    button { padding: 8px 12px; border: 0; border-radius: 8px; background: #0066cc; color: #fff; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px; border-bottom: 1px solid #e7eef7; text-align: left; }
+    .result { padding: 8px; border: 1px dashed #bcd0eb; border-radius: 8px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Customer Dashboard</h1>
+
+  <div class="box">
+    <h2>Gio hang</h2>
+    <form method="post" action="{% url 'create_cart' %}">
+      {% csrf_token %}
+      <button type="submit">Tao gio hang moi</button>
+    </form>
+    <p>Trang thai: {% if cart %}Cart #{{ cart.id }}{% else %}Chua co gio hang{% endif %}</p>
+  </div>
+
+  <div class="box">
+    <h2>Tim kiem Laptop/Mobile</h2>
+    <input id="keyword" type="text" placeholder="Nhap tu khoa" />
+    <button onclick="searchProducts()">Tim</button>
+    <div id="results" style="margin-top: 12px;"></div>
+  </div>
+
+  <div class="box">
+    <h2>San pham trong gio</h2>
+    <table>
+      <tr><th>Loai</th><th>Ten</th><th>Gia</th><th>So luong</th></tr>
+      {% for item in cart_items %}
+      <tr>
+        <td>{{ item.product_type }}</td>
+        <td>{{ item.product_name }}</td>
+        <td>{{ item.price }}</td>
+        <td>{{ item.quantity }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4">Chua co san pham.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<script>
+async function searchProducts() {
+  const q = document.getElementById('keyword').value;
+  const res = await fetch(`{% url 'search_products' %}?q=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  const root = document.getElementById('results');
+  root.innerHTML = '';
+
+  const all = [
+    ...(data.laptops || []).map(x => ({ ...x, product_type: 'laptop' })),
+    ...(data.mobiles || []).map(x => ({ ...x, product_type: 'mobile' }))
+  ];
+
+  if (!all.length) {
+    root.innerHTML = '<p>Khong tim thay ket qua.</p>';
+    return;
+  }
+
+  all.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'result';
+    div.innerHTML = `
+      <b>${item.name}</b> - ${item.price}
+      <form method="post" action="{% url 'add_to_cart' %}" style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" />
+        <input type="hidden" name="product_type" value="${item.product_type}" />
+        <input type="hidden" name="product_id" value="${item.id}" />
+        <input type="hidden" name="product_name" value="${item.name}" />
+        <input type="hidden" name="price" value="${item.price}" />
+        <input type="number" name="quantity" value="1" min="1" style="width:70px;" />
+        <button type="submit">Them vao gio</button>
+      </form>
+    `;
+    root.appendChild(div);
+  });
+}
+</script>
+</body>
+</html>
