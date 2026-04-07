@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Gateway Dashboard</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">▲</div>
+                <h2>SAD Gateway</h2>
+            </div>
+            <nav class="side-nav">
+                <a href="#" class="active"><span>📊</span> Dashboard</a>
+                <a href="#"><span>🔌</span> Services</a>
+                <a href="#"><span>🛡️</span> Security</a>
+                <a href="#"><span>📜</span> Logs</a>
+                <a href="#"><span>⚙️</span> Settings</a>
+            </nav>
+            <div class="system-status">
+                <div class="status-indicator online"></div>
+                <span>System Online</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-titles">
+                    <h1>API Gateway Overview</h1>
+                    <p>kiemtra01_01.06_duongnt</p>
+                </div>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Admin+SAD&background=0D8ABC&color=fff" alt="Admin">
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <section class="kpi-grid">
+                <div class="kpi-card glass">
+                    <div class="kpi-icon blue">⚡</div>
+                    <div class="kpi-info">
+                        <h3>Total Requests</h3>
+                        <p class="kpi-value">{{ total_requests | default('0') }}</p>
+                    </div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-icon green">✅</div>
+                    <div class="kpi-info">
+                        <h3>Avg Response Time</h3>
+                        <p class="kpi-value">45ms</p>
+                    </div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-icon purple">🔌</div>
+                    <div class="kpi-info">
+                        <h3>Active Services</h3>
+                        <p class="kpi-value">{{ services | length }}</p>
+                    </div>
+                </div>
+                <div class="kpi-card glass">
+                    <div class="kpi-icon red">⚠️</div>
+                    <div class="kpi-info">
+                        <h3>Error Rate</h3>
+                        <p class="kpi-value">0.12%</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="dashboard-grid">
+                <!-- Services Map -->
+                <section class="services-section glass">
+                    <div class="section-header">
+                        <h2>Microservices Map</h2>
+                        <button class="btn btn-sm">Refresh</button>
+                    </div>
+                    <div class="services-list">
+                        {% for service, url in services_config.items() %}
+                        <div class="service-item">
+                            <div class="service-info">
+                                <span class="status-dot"></span>
+                                <div class="service-details">
+                                    <h4>{{ service | title }} Service</h4>
+                                    <span class="route-path">/{{ service }}/*</span>
+                                </div>
+                            </div>
+                            <div class="service-endpoint">
+                                <code>{{ url }}</code>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Traffic Chart -->
+                <section class="chart-section glass">
+                    <div class="section-header">
+                        <h2>Traffic Analytics (Mocked)</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Recent Requests Log -->
+            <section class="logs-section glass">
+                <div class="section-header">
+                    <h2>Live Request Logs</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Method</th>
+                                <th>Endpoint Path</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for req in recent_requests %}
+                            <tr>
+                                <td>{{ req.time }}</td>
+                                <td><span class="badge method-{{ req.method | lower }}">{{ req.method }}</span></td>
+                                <td class="path-cell">{{ req.path }}</td>
+                                <td><span class="badge status-{{ req.status | string | first }}xx">{{ req.status }}</span></td>
+                                <td>{{ req.duration | default('12ms') }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% if not recent_requests %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: #888;">No recent activity</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Chart Init Script -->
+    <script>
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(66, 133, 244, 0.4)');
+        gradient.addColorStop(1, 'rgba(66, 133, 244, 0.0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+                datasets: [{
+                    label: 'Requests per 5 min',
+                    data: [12, 19, 15, 25, 22, 30, 28],
+                    borderColor: '#4285F4',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#121212',
+                    pointBorderColor: '#4285F4',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#888' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#888' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

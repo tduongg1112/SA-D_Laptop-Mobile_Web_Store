@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+# === [THAY ĐỔI] Dùng Groq SDK thay vì Google GenAI ===
+groq
+numpy
+pydantic

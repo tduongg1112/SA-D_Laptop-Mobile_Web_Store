@@ -3,47 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Update Item</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <title>Update Item - Nova Staff</title>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg: #dcdce0;
-      --panel: #f5f5f7;
-      --text: #101319;
-      --line: #dedfe5;
-      --accent: #2d56e3;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); font-family: "Manrope", sans-serif; color: var(--text); }
-    .container { max-width: 760px; margin: 36px auto; background: var(--panel); border: 1px solid #d1d2d8; border-radius: 20px; overflow: hidden; }
-    .head { padding: 20px 24px; border-bottom: 1px solid var(--line); background: linear-gradient(130deg, #fff, #f1f3f9); }
-    .head h1 { margin: 0; font-size: 34px; letter-spacing: -0.03em; }
-    form { padding: 20px 24px 24px; }
-    input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d0d4e1; border-radius: 10px; margin-bottom: 8px; background: #f8f9fc; font: inherit; }
-    .actions { display: flex; gap: 8px; margin-top: 6px; }
-    button, a { border: 0; border-radius: 999px; background: var(--accent); color: #fff; padding: 10px 14px; text-decoration: none; font-weight: 700; cursor: pointer; }
-    a { background: #e6ebff; color: #203a99; }
+    :root { --bg:#f0f2f5; --panel:#fff; --text:#101319; --muted:#666d79; --line:#e5e7eb; --accent:#2d56e3; }
+    * { box-sizing:border-box; margin:0; }
+    body { font-family:"Manrope",sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
+    .sidebar { width:240px; background:#fff; border-right:1px solid var(--line); padding:20px 0; display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; }
+    .sidebar .brand { padding:0 20px 24px; font-size:22px; font-weight:800; letter-spacing:-0.02em; border-bottom:1px solid var(--line); }
+    .sidebar .brand small { display:block; font-size:11px; font-weight:500; color:var(--muted); margin-top:2px; }
+    .sidebar nav { flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:4px; }
+    .sidebar nav a { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:10px; text-decoration:none; color:#4b5563; font-size:13.5px; font-weight:600; transition:all 0.15s; }
+    .sidebar nav a:hover { background:#f3f4f6; }
+    .sidebar nav a.active { background:#eef2ff; color:var(--accent); }
+    .sidebar nav a .icon { width:20px; text-align:center; }
+    .sidebar .logout { margin:0 12px; padding:10px 14px; border-radius:10px; background:#fee2e2; color:#dc2626; text-decoration:none; font-weight:600; font-size:13.5px; text-align:center; }
+    .main { margin-left:240px; flex:1; padding:28px 32px; }
+    .page-title { font-size:28px; font-weight:800; letter-spacing:-0.02em; margin-bottom:24px; }
+    .form-card { max-width:600px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:24px; }
+    .form-card input, .form-card textarea { width:100%; padding:10px 14px; border:1px solid #d0d6e8; border-radius:10px; margin-bottom:10px; background:#f8f9ff; font:inherit; }
+    .form-card input:focus, .form-card textarea:focus { border-color:var(--accent); outline:none; }
+    .form-actions { display:flex; gap:10px; margin-top:8px; }
+    .btn { border:0; border-radius:999px; background:var(--accent); color:#fff; padding:10px 18px; font-weight:700; cursor:pointer; font-size:13px; text-decoration:none; }
+    .btn-alt { background:#e6ebff; color:#203a99; }
+    @media(max-width:768px) { .sidebar { display:none; } .main { margin-left:0; } }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="head">
-    <h1>Edit item #{{ item.id }}</h1>
-  </div>
-  <form method="post">
-    {% csrf_token %}
-    <input type="text" name="name" value="{{ item.name }}" required />
-    <input type="text" name="category" value="{{ item.category }}" required />
-    <input type="number" step="0.01" name="price" value="{{ item.price }}" required />
-    <input type="number" name="stock" value="{{ item.stock }}" required />
-    <textarea name="description" rows="3">{{ item.description }}</textarea>
-    <div class="actions">
-      <button type="submit">Save changes</button>
-      <a href="{% url 'staff_inventory' %}">Back to inventory</a>
+  <aside class="sidebar">
+    <div class="brand">Nova Staff <small>Admin Panel</small></div>
+    <nav>
+      <a href="{% url 'staff_dashboard' %}"><span class="icon">📊</span> Dashboard</a>
+      <a href="{% url 'staff_home' %}"><span class="icon">🏠</span> Home</a>
+      <a href="{% url 'staff_inventory' %}" class="active"><span class="icon">📦</span> Inventory</a>
+      <a href="{% url 'staff_catalog' 'laptops' %}"><span class="icon">💻</span> Laptop Catalog</a>
+      <a href="{% url 'staff_catalog' 'mobiles' %}"><span class="icon">📱</span> Mobile Catalog</a>
+      <a href="{% url 'staff_customers' %}"><span class="icon">👥</span> Customers</a>
+    </nav>
+    <a href="{% url 'staff_logout' %}" class="logout">🚪 Logout</a>
+  </aside>
+
+  <main class="main">
+    <h1 class="page-title">Edit Item #{{ item.id }}</h1>
+    <div class="form-card">
+      <form method="post">
+        {% csrf_token %}
+        <input type="text" name="name" value="{{ item.name }}" required />
+        <input type="text" name="category" value="{{ item.category }}" required />
+        <input type="number" step="0.01" name="price" value="{{ item.price }}" required />
+        <input type="number" name="stock" value="{{ item.stock }}" required />
+        <textarea name="description" rows="3">{{ item.description }}</textarea>
+        <div class="form-actions">
+          <button class="btn" type="submit">Save Changes</button>
+          <a class="btn btn-alt" href="{% url 'staff_inventory' %}">Back to Inventory</a>
+        </div>
+      </form>
     </div>
-  </form>
-</div>
+  </main>
 </body>
 </html>

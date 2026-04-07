@@ -1,8 +1,12 @@
+import json
 import requests
+from collections import Counter
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .models import Item
@@ -63,7 +67,113 @@ def staff_home(request):
 
 @login_required
 def staff_dashboard(request):
-	return redirect('staff_inventory')
+	"""Analytics dashboard with charts from product data."""
+	laptops = fetch_external_products('laptops')
+	mobiles = fetch_external_products('mobiles')
+	all_products = laptops + mobiles
+	inventory_count = Item.objects.count()
+
+	# Stats
+	total_laptops = len(laptops)
+	total_mobiles = len(mobiles)
+	total_products = total_laptops + total_mobiles
+
+	prices = [float(p.get('price', 0)) for p in all_products]
+	stocks = [int(p.get('stock', 0)) for p in all_products]
+	total_stock_value = sum(p * s for p, s in zip(prices, stocks))
+	avg_price = round(sum(prices) / len(prices), 0) if prices else 0
+
+	# Category distribution
+	categories = [p.get('category', 'other') for p in all_products]
+	cat_counter = Counter(categories)
+	category_labels = list(cat_counter.keys())
+	category_values = list(cat_counter.values())
+
+	# Price ranges
+	price_ranges = {'< $300': 0, '$300-$600': 0, '$600-$1000': 0, '$1000-$1500': 0, '> $1500': 0}
+	for price in prices:
+		if price < 300:
+			price_ranges['< $300'] += 1
+		elif price < 600:
+			price_ranges['$300-$600'] += 1
+		elif price < 1000:
+			price_ranges['$600-$1000'] += 1
+		elif price < 1500:
+			price_ranges['$1000-$1500'] += 1
+		else:
+			price_ranges['> $1500'] += 1
+
+	# Brand distribution
+	brands = [p.get('brand', 'Unknown') for p in all_products]
+	brand_counter = Counter(brands)
+	brand_sorted = brand_counter.most_common(8)
+	brand_labels = [b[0] for b in brand_sorted]
+	brand_values = [b[1] for b in brand_sorted]
+
+	# Stock by type
+	laptop_stock = sum(int(p.get('stock', 0)) for p in laptops)
+	mobile_stock = sum(int(p.get('stock', 0)) for p in mobiles)
+
+	# Top products
+	top_products = sorted(all_products, key=lambda p: float(p.get('price', 0)), reverse=True)[:10]
+
+	context = {
+		'total_products': total_products,
+		'total_laptops': total_laptops,
+		'total_mobiles': total_mobiles,
+		'inventory_count': inventory_count,
+		'total_stock_value': int(total_stock_value),
+		'avg_price': int(avg_price),
+		'category_labels': json.dumps(category_labels),
+		'category_values': json.dumps(category_values),
+		'price_labels': json.dumps(list(price_ranges.keys())),
+		'price_values': json.dumps(list(price_ranges.values())),
+		'brand_labels': json.dumps(brand_labels),
+		'brand_values': json.dumps(brand_values),
+		'stock_labels': json.dumps(['Laptops', 'Mobiles']),
+		'stock_values': json.dumps([laptop_stock, mobile_stock]),
+		'top_products': top_products,
+	}
+	return render(request, 'staff_core/dashboard.html', context)
+
+
+@login_required
+def staff_customers(request):
+	"""Show customer accounts from the customer_db database."""
+	import psycopg2
+	customers = []
+	try:
+		conn = psycopg2.connect(
+			dbname='customer_db',
+			user='postgres',
+			password='postgres123',
+			host='postgres-db',
+			port='5432',
+		)
+		cur = conn.cursor()
+		cur.execute("""
+			SELECT id, username, first_name, last_name, email, is_active, date_joined
+			FROM auth_user ORDER BY date_joined DESC
+		""")
+		for row in cur.fetchall():
+			customers.append({
+				'id': row[0],
+				'username': row[1],
+				'first_name': row[2],
+				'last_name': row[3],
+				'email': row[4],
+				'is_active': row[5],
+				'date_joined': row[6],
+			})
+		cur.close()
+		conn.close()
+	except Exception:
+		# Fallback: show staff DB users
+		from django.contrib.auth.models import User
+		customers = list(User.objects.all().order_by('-date_joined').values(
+			'id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'date_joined'
+		))
+	return render(request, 'staff_core/customers.html', {'customers': customers})
 
 
 @login_required

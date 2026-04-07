@@ -1,2 +1,4 @@
 CREATE DATABASE laptop_db;
 CREATE DATABASE mobile_db;
+CREATE DATABASE customer_db;
+CREATE DATABASE staff_db;
